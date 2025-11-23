@@ -1,0 +1,599 @@
+<html lang="ja"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ラタタラ語 画像ジェネレーター</title>
+    <style>
+        /* --- 基本スタイル --- */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            color: #e0e0e0;
+            min-height: 100vh;
+            background-color: #3e2723;
+            /* 錆びた鉄板風テクスチャ */
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%),
+                repeating-linear-gradient(45deg, #4e342e 0px, #3e2723 10px, #5d4037 20px),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.15"/></svg>');
+            background-blend-mode: multiply, normal, overlay;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- 上部の流れる文字 (Marquee) --- */
+        .marquee-container {
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-bottom: 2px solid #8d6e63;
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 10px 0;
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .marquee-container:hover {
+            background-color: rgba(62, 39, 35, 0.9);
+        }
+
+        .marquee-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 20s linear infinite;
+            font-size: 1.2rem;
+            color: #ffab91;
+            font-weight: bold;
+        }
+
+        @keyframes marquee {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+
+        /* --- リンク選択モダール --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background: #3e2723;
+            border: 2px solid #8d6e63;
+            border-radius: 8px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            text-align: center;
+            background-image: repeating-linear-gradient(45deg, #4e342e 0px, #3e2723 5px);
+        }
+
+        .modal-title {
+            color: #ffccbc;
+            margin-top: 0;
+            border-bottom: 1px dashed #8d6e63;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .link-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .site-link-btn {
+            display: block;
+            background: linear-gradient(to right, #5d4037, #4e342e);
+            color: #ffccbc;
+            text-decoration: none;
+            padding: 12px;
+            border: 1px solid #8d6e63;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .site-link-btn:hover {
+            background: linear-gradient(to right, #6d4c41, #5d4037);
+            color: #fff;
+        }
+
+        .close-modal-btn {
+            background: #333;
+            border: 1px solid #555;
+            color: #aaa;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .close-modal-btn:hover {
+            background: #444;
+            color: #fff;
+        }
+
+        /* --- コンテナレイアウト --- */
+        .container {
+            margin-top: 80px;
+            width: 90%;
+            max-width: 800px;
+            background: rgba(30, 20, 15, 0.85);
+            border: 1px solid #6d4c41;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.7), 0 10px 20px rgba(0,0,0,0.5);
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffccbc;
+            text-shadow: 2px 2px 4px #000;
+            border-bottom: 1px dashed #8d6e63;
+            padding-bottom: 15px;
+        }
+
+        .section-title {
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: #ffab91;
+            border-left: 4px solid #d84315;
+            padding-left: 10px;
+        }
+
+        /* --- 入力フォーム --- */
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #d7ccc8;
+        }
+
+        input[type="text"], input[type="file"], input[type="color"], input[type="url"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #5d4037;
+            background-color: #2d1f1b;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.5;
+        }
+
+        input[type="color"] {
+            height: 40px;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        
+        /* チェックボックス周りのスタイル */
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            color: #e0e0e0;
+            font-weight: normal;
+        }
+        .checkbox-label input {
+            margin-right: 8px;
+            width: auto;
+            transform: scale(1.2);
+        }
+
+        button {
+            background: linear-gradient(to bottom, #d84315, #bf360c);
+            color: white;
+            border: 1px solid #870000;
+            padding: 12px 24px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            text-shadow: 1px 1px 2px black;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+        }
+
+        button:hover {
+            background: linear-gradient(to bottom, #ff5722, #e64a19);
+            transform: translateY(-1px);
+        }
+
+        /* --- プレビューエリア --- */
+        .preview-area {
+            margin-top: 30px;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px dashed #6d4c41;
+            /* 透明背景時の市松模様 */
+            background-image: 
+                linear-gradient(45deg, #444 25%, transparent 25%), 
+                linear-gradient(-45deg, #444 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #444 75%), 
+                linear-gradient(-45deg, transparent 75%, #444 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            background-color: transparent; /* キャンバス自体の背景はJSで制御 */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        .download-btn {
+            display: inline-block;
+            margin-top: 15px;
+            background: linear-gradient(to bottom, #2e7d32, #1b5e20);
+            text-decoration: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: 1px solid #003300;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+        }
+        
+        .download-btn:hover {
+            background: linear-gradient(to bottom, #388e3c, #2e7d32);
+        }
+
+        .download-btn.disabled {
+            background: #555;
+            pointer-events: none;
+            color: #888;
+            border-color: #444;
+        }
+
+        /* --- 管理者用エリア --- */
+        #admin-panel {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #d84315;
+            margin-bottom: 20px;
+        }
+        
+        .note {
+            font-size: 0.85rem;
+            color: #bdbdbd;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+
+        .admin-link-list {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 15px;
+        }
+        .admin-link-list li {
+            background: rgba(255,255,255,0.1);
+            margin-bottom: 5px;
+            padding: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 4px;
+        }
+        .delete-btn {
+            background: #c62828;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        /* コード表示用textarea */
+        .code-textarea {
+            width: 100%;
+            height: 250px;
+            background-color: #1e1e1e;
+            color: #9cdcfe;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 0.9rem;
+            border: 1px solid #444;
+            padding: 10px;
+            white-space: pre;
+            overflow: auto;
+            margin-bottom: 15px;
+        }
+        
+        .copy-btn {
+            background: #1976d2;
+            margin-right: 10px;
+        }
+        .copy-btn:hover {
+            background: #2196f3;
+        }
+
+    </style>
+    
+    <style>
+            @font-face {
+                font-family: 'RatataraFont';
+                src: url('data:application/octet-stream;base64,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');
+            }
+            </style>
+</head>
+<body>
+
+    <!-- 上部Marquee -->
+    <div class="marquee-container" onclick="openLinkModal()">
+        <div id="marquee-text" class="marquee-text">ラタタラ語の辞書、ラタタラ語解説サイト公開中！詳しくはここをクリック！</div>
+    </div>
+
+    <!-- リンク選択モダール -->
+    <div id="linkModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h2 class="modal-title">関連リンク</h2>
+            <div id="modalLinkList" class="link-list-container"><a class="site-link-btn" href="https://latatala-zisio.netlify.app/" target="_blank">ラタタラ語の辞書</a><a class="site-link-btn" href="https://lttl-kaisetu-surungo.netlify.app/" target="_blank">ラタタラ語の解説</a></div>
+            <button class="close-modal-btn" onclick="closeLinkModal()">閉じる</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>ラタタラ語 変換機</h1>
+
+        <!-- ■■■ 管理者エリア（書き出し時に削除） ■■■ -->
+        
+
+        <!-- ■■■ 一般ユーザーエリア ■■■ -->
+        <div id="user-panel">
+            <div class="section-title">入力設定</div>
+
+            <!-- 変更点：注釈を追加 -->
+            <label for="jpInput">
+                日本語 (任意) 
+                <span style="font-size:0.8rem; font-weight:normal; color:#ffcc80; margin-left: 5px;">※空白の場合はスペースを入力しておくときれいになりやすいよ！</span>
+            </label>
+            <textarea id="jpInput" placeholder="日本語訳（改行可能）"></textarea>
+
+            <label for="ratInput">ラタタラ語 (必須)</label>
+            <textarea id="ratInput" placeholder="ラタタラ語（改行可能）"></textarea>
+            
+            <div id="error-msg" style="color: #ff5252; font-weight: bold; display: none; margin-bottom:10px;"></div>
+
+            <!-- 文字色 -->
+            <label for="colorInput">文字色</label>
+            <input type="color" id="colorInput" value="#000000">
+
+            <!-- 背景設定 -->
+            <label>背景設定</label>
+            <div style="display:flex; gap:15px; align-items:center; margin-bottom:15px; background:rgba(0,0,0,0.2); padding:10px; border-radius:4px;">
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <span style="font-size:0.9rem;">色:</span>
+                    <input type="color" id="bgColorInput" value="#ffffff" style="margin-bottom:0; width:50px;">
+                </div>
+                
+                <label class="checkbox-label" for="transparentCheck">
+                    <input type="checkbox" id="transparentCheck">
+                    背景を透過する
+                </label>
+            </div>
+
+            <button onclick="generateImage()">画像を生成する</button>
+        </div>
+
+        <div class="preview-area">
+            <canvas id="resultCanvas" width="800" height="400"></canvas>
+            <br>
+            <a id="downloadLink" class="download-btn disabled">画像をダウンロード</a>
+        </div>
+    </div>
+
+    <script>
+        // --- グローバル変数 ---
+        let customFontLoaded = true;
+        let currentFontDataURI = null; 
+        let forbiddenChars = "cjqrxy56789"; // デフォルト
+        let linkList = [{"name":"ラタタラ語の辞書","url":"https://latatala-zisio.netlify.app/"},{"name":"ラタタラ語の解説","url":"https://lttl-kaisetu-surungo.netlify.app/"}]; 
+
+        const canvas = document.getElementById('resultCanvas');
+        const ctx = canvas.getContext('2d');
+        const downloadLink = document.getElementById('downloadLink');
+        const errorMsg = document.getElementById('error-msg');
+        const marqueeTextElem = document.getElementById('marquee-text');
+
+        // モダール関連
+        const linkModal = document.getElementById('linkModal');
+        const modalLinkList = document.getElementById('modalLinkList');
+
+        // --- 初期化 ---
+        
+
+        // 公開版用（ADMINブロックが消えた場合の初期化）
+        if (typeof loadSettingsFromStorage === 'undefined') {
+            clearCanvas();
+        }
+
+        // --- モダール機能 ---
+        function openLinkModal() {
+            modalLinkList.innerHTML = "";
+            if (linkList.length === 0) {
+                modalLinkList.innerHTML = '<p style="color:#aaa;">リンクは登録されていません。</p>';
+            } else {
+                linkList.forEach(link => {
+                    const a = document.createElement('a');
+                    a.className = 'site-link-btn';
+                    a.href = link.url;
+                    a.target = '_blank';
+                    a.innerText = link.name;
+                    modalLinkList.appendChild(a);
+                });
+            }
+            linkModal.style.display = 'flex';
+        }
+
+        function closeLinkModal() {
+            linkModal.style.display = 'none';
+        }
+        
+        linkModal.addEventListener('click', function(e) {
+            if (e.target === linkModal) {
+                closeLinkModal();
+            }
+        });
+
+        // --- 管理者機能：LocalStorage保存と復元 ---
+        
+
+        // --- 画像生成機能 ---
+        function loadFont(base64Data, showAlert = true) {
+            const fontName = 'RatataraFont';
+            const fontFace = new FontFace(fontName, `url(${base64Data})`);
+            fontFace.load().then(function(loadedFace) {
+                document.fonts.add(loadedFace);
+                customFontLoaded = true;
+                if(showAlert) alert('フォント読込完了');
+            }).catch(function(error) {
+                if(showAlert) alert('フォント読込失敗');
+            });
+        }
+
+        function generateImage() {
+            const jpText = document.getElementById('jpInput').value;
+            const ratText = document.getElementById('ratInput').value;
+            const textColor = document.getElementById('colorInput').value;
+            
+            // 背景設定の取得
+            const bgColor = document.getElementById('bgColorInput').value;
+            const isTransparent = document.getElementById('transparentCheck').checked;
+
+            if (!ratText) {
+                showError("ラタタラ語を入力してください");
+                return;
+            }
+            if (checkForbidden(ratText)) {
+                showError(`禁止文字が含まれています: ${forbiddenChars}`);
+                return;
+            }
+            showError(null);
+
+            // --- サイズ計算 ---
+            const canvasWidth = 800;
+            const padding = 50;   
+            const gap = 50;       
+
+            const jpFontSize = 40;
+            const jpLineHeight = 60; 
+            const jpLines = jpText ? jpText.split('\n') : [];
+            const jpBlockHeight = jpLines.length * jpLineHeight;
+
+            const ratFontSize = 60;
+            const ratLineHeight = 90; 
+            const ratLines = ratText.split('\n');
+            const ratBlockHeight = ratLines.length * ratLineHeight;
+
+            let totalHeight = padding + ratBlockHeight + padding;
+            if (jpBlockHeight > 0) {
+                totalHeight = padding + jpBlockHeight + gap + ratBlockHeight + padding;
+            }
+
+            canvas.width = canvasWidth;
+            canvas.height = Math.max(400, totalHeight);
+
+            // --- 描画開始 ---
+            
+            // 1. キャンバスをクリア（透明にする）
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 2. 背景塗りつぶし（透過チェックがない場合のみ）
+            if (!isTransparent) {
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // 3. テキスト描画
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = textColor;
+
+            let currentY = padding;
+
+            if (jpLines.length > 0) {
+                ctx.font = `bold ${jpFontSize}px 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif`;
+                jpLines.forEach(line => {
+                    ctx.fillText(line, canvasWidth / 2, currentY + (jpLineHeight / 2));
+                    currentY += jpLineHeight;
+                });
+                currentY += gap;
+            }
+
+            const fontName = customFontLoaded ? "RatataraFont" : "sans-serif";
+            ctx.font = `${ratFontSize}px "${fontName}"`;
+
+            ratLines.forEach(line => {
+                ctx.fillText(line, canvasWidth / 2, currentY + (ratLineHeight / 2));
+                currentY += ratLineHeight;
+            });
+
+            // ダウンロードリンク更新
+            const dataUrl = canvas.toDataURL('image/png');
+            downloadLink.href = dataUrl;
+            downloadLink.download = `ratatara_${Date.now()}.png`;
+            downloadLink.classList.remove('disabled');
+        }
+
+        function checkForbidden(text) {
+            if (!forbiddenChars) return false;
+            const chars = text.split('');
+            for (let c of chars) {
+                // 改行は無視
+                if (c === '\n' || c === '\r') continue;
+                if (forbiddenChars.includes(c)) return true;
+            }
+            return false;
+        }
+
+        function showError(msg) {
+            if (msg) {
+                errorMsg.innerText = msg;
+                errorMsg.style.display = 'block';
+            } else {
+                errorMsg.style.display = 'none';
+            }
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#f0f0f0"; // プレビュー時のデフォルト背景
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = "#999";
+            ctx.font = "20px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("プレビュー", canvas.width/2, canvas.height/2);
+        }
+
+        // --- コード表示機能 (ADMIN ONLY) ---
+        
+    </script>
+
+</body></html>
