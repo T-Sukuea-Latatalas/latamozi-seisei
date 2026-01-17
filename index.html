@@ -349,10 +349,12 @@
     </div>
 
     <!-- リンク選択モダール -->
-    <div id="linkModal" class="modal-overlay" style="display: none;">
+    <div id="linkModal" class="modal-overlay">
         <div class="modal-content">
             <h2 class="modal-title">関連リンク</h2>
-            <div id="modalLinkList" class="link-list-container"><a class="site-link-btn" href="https://latatala-zisio.netlify.app/" target="_blank">ラタタラ語の辞書</a><a class="site-link-btn" href="https://lttl-kaisetu-surungo.netlify.app/" target="_blank">ラタタラ語の解説</a></div>
+            <div id="modalLinkList" class="link-list-container">
+                <p style="color:#aaa;">リンクは登録されていません。</p>
+            </div>
             <button class="close-modal-btn" onclick="closeLinkModal()">閉じる</button>
         </div>
     </div>
@@ -412,7 +414,7 @@
         let customFontLoaded = true;
         let currentFontDataURI = null; 
         let forbiddenChars = "cjqrxy56789"; // デフォルト
-        let linkList = [{"name":"ラタタラ語の辞書","url":"https://latatala-zisio.netlify.app/"},{"name":"ラタタラ語の解説","url":"https://lttl-kaisetu-surungo.netlify.app/"}]; 
+        let linkList = [{"name":"辞書","url":"https://t-sukuea-latatalas.github.io/T-Sukuea-Latatalas-latatala-zisio/"},{"name":"解説","url":"https://t-sukuea-latatalas.github.io/latatala-kaisetu/"}]; 
 
         const canvas = document.getElementById('resultCanvas');
         const ctx = canvas.getContext('2d');
